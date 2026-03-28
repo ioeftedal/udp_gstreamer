@@ -72,6 +72,17 @@
 
               # GStreamer (pinned via uzaaft/gstreamer-nix)
               gstreamerPackage
+
+              # Playback plugins required by playbin
+              gst_all_1.gst-plugins-base
+              gst_all_1.gst-plugins-good
+              gst_all_1.gst-plugins-bad
+              gst_all_1.gst-plugins-ugly
+              gst_all_1.gst-libav
+
+              # TLS backend for HTTPS sources used by playbin
+              glib-networking
+              cacert
             ];
 
             shellHook = ''
@@ -88,6 +99,12 @@
 
               # pkg-config
               export PKG_CONFIG_PATH="${qtEnv}/lib/pkgconfig:$PKG_CONFIG_PATH"
+
+              # Trust store for HTTPS playback sources
+              export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+
+              # Enable TLS backend for libsoup-based sources
+              export GIO_EXTRA_MODULES="${pkgs.glib-networking}/lib/gio/modules:$GIO_EXTRA_MODULES"
             '';
           };
         });
