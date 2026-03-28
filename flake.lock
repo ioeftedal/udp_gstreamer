@@ -1,6 +1,38 @@
 {
   "nodes": {
+    "gstreamer": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1774703036,
+        "narHash": "sha256-zs8kWjPX++OYLXFA/ktrHVLXxpWtEr26cHYiGBW8HBo=",
+        "owner": "uzaaft",
+        "repo": "gstreamer-nix",
+        "rev": "bdcad4e597c07365c0ccfb67ce5647e08f427322",
+        "type": "github"
+      },
+      "original": {
+        "owner": "uzaaft",
+        "repo": "gstreamer-nix",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
+      "locked": {
+        "lastModified": 1774388614,
+        "narHash": "sha256-tFwzTI0DdDzovdE9+Ras6CUss0yn8P9XV4Ja6RjA+nU=",
+        "rev": "1073dad219cb244572b74da2b20c7fe39cb3fa9e",
+        "revCount": 909934,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.2511.909934%2Brev-1073dad219cb244572b74da2b20c7fe39cb3fa9e/019d2b46-962b-77bf-a24b-1be31ebbf06f/source.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://flakehub.com/f/NixOS/nixpkgs/0"
+      }
+    },
+    "nixpkgs_2": {
       "locked": {
         "lastModified": 1774244481,
         "narHash": "sha256-4XfMXU0DjN83o6HWZoKG9PegCvKvIhNUnRUI19vzTcQ=",
@@ -18,7 +50,8 @@
     },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "gstreamer": "gstreamer",
+        "nixpkgs": "nixpkgs_2"
       }
     }
   },

@@ -3,9 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    gstreamer.url = "github:uzaaft/gstreamer-nix";
   };
 
-  outputs = { self, nixpkgs, ... }:
+  outputs = { self, nixpkgs, gstreamer, ... }:
     let
       allSystems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
 
@@ -48,6 +49,7 @@
             pkgs.qt6.qtwebengine
             pkgs.qt6.qtmultimedia
           ];
+          gstreamerPackage = gstreamer.packages.${system}.default;
         in {
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
@@ -68,19 +70,11 @@
               qt6.wrapQtAppsHook
               # qtcreator
 
-              # GStreamer (your original deps)
-              glib
-              gst_all_1.gstreamer
-              gst_all_1.gst-plugins-base
-              gst_all_1.gst-plugins-good
-              gst_all_1.gst-plugins-bad
-              gst_all_1.gst-plugins-ugly
-              gst_all_1.gst-libav
+              # GStreamer (pinned via uzaaft/gstreamer-nix)
+              gstreamerPackage
             ];
 
             shellHook = ''
-              echo "Entering C + Qt6 dev environment"
-
               # Compiler / linker paths
               export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH
 
