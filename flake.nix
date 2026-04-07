@@ -99,6 +99,7 @@
 
               # pkg-config
               export PKG_CONFIG_PATH="${qtEnv}/lib/pkgconfig:$PKG_CONFIG_PATH"
+              export PKG_CONFIG_PATH="${gstreamerPackage}/lib/pkgconfig:$PKG_CONFIG_PATH"
 
               # Trust store for HTTPS playback sources
               export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
