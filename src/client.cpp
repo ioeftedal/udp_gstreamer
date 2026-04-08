@@ -13,11 +13,16 @@ ClientWidget::ClientWidget(const QString &hostMain, quint16 portMain,
       insetPipeline_(nullptr)
 {
     mainLabel_->setScaledContents(true);
+    mainLabel_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    mainLabel_->setMinimumSize(0, 0);
     insetLabel_->setScaledContents(true);
     insetLabel_->setStyleSheet("border: 2px solid white; background-color: black;");
     insetLabel_->installEventFilter(this);
     insetLabel_->setCursor(Qt::PointingHandCursor);
     insetLabel_->raise();
+
+    mainTarget_ = mainLabel_;
+    insetTarget_ = insetLabel_;
 
     // Main layout only contains the main feed
     QVBoxLayout *layout = new QVBoxLayout(this);
@@ -52,10 +57,14 @@ bool ClientWidget::eventFilter(QObject *obj, QEvent *event) {
     return QWidget::eventFilter(obj, event);
 }
 
+// void ClientWidget::swapVideos() {
+//     std::swap(mainPixmap_, insetPixmap_);
+//     mainLabel_->setPixmap(mainPixmap_);
+//     insetLabel_->setPixmap(insetPixmap_);
+// }
+
 void ClientWidget::swapVideos() {
-    std::swap(mainPixmap_, insetPixmap_);
-    mainLabel_->setPixmap(mainPixmap_);
-    insetLabel_->setPixmap(insetPixmap_);
+    std::swap(mainTarget_, insetTarget_);
 }
 
 void ClientWidget::resizeEvent(QResizeEvent *event) {
@@ -141,17 +150,27 @@ GstFlowReturn ClientWidget::onNewSample(GstAppSink *sink, gpointer user_data) {
 
     QPixmap pixmap = QPixmap::fromImage(img.rgbSwapped());
 
-    if (self->mainPipeline_ && GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_)) {
-        self->mainPixmap_ = pixmap;
-        QMetaObject::invokeMethod(self->mainLabel_, "setPixmap",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(QPixmap, self->mainPixmap_));
-    } else {
-        self->insetPixmap_ = pixmap;
-        QMetaObject::invokeMethod(self->insetLabel_, "setPixmap",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(QPixmap, self->insetPixmap_));
-    }
+    // if (self->mainPipeline_ && GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_)) {
+    //     self->mainPixmap_ = pixmap;
+    //     QMetaObject::invokeMethod(self->mainLabel_, "setPixmap",
+    //                               Qt::QueuedConnection,
+    //                               Q_ARG(QPixmap, self->mainPixmap_));
+    // } else {
+    //     self->insetPixmap_ = pixmap;
+    //     QMetaObject::invokeMethod(self->insetLabel_, "setPixmap",
+    //                               Qt::QueuedConnection,
+    //                               Q_ARG(QPixmap, self->insetPixmap_));
+    // }
+
+    bool isMainStream =
+        (GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_));
+
+    QLabel* target = isMainStream ? self->mainTarget_
+                                : self->insetTarget_;
+
+    QMetaObject::invokeMethod(target, "setPixmap",
+                            Qt::QueuedConnection,
+                            Q_ARG(QPixmap, pixmap));
 
     return GST_FLOW_OK;
 }

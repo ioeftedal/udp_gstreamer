@@ -30,6 +30,9 @@ private:
     QPixmap mainPixmap_;
     QPixmap insetPixmap_;
 
+    QLabel* mainTarget_;
+    QLabel* insetTarget_;
+
     GstElement *mainPipeline_;
     GstElement *insetPipeline_;
 
