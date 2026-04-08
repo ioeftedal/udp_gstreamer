@@ -1,0 +1,34 @@
+{
+  "client": {
+    "main_stream": {
+      "host": "127.0.0.1",
+      "port": 5000
+    },
+    "inset_stream": {
+      "host": "127.0.0.1",
+      "port": 5001
+    }
+  },
+  "server": {
+    "cameras": [
+      {
+        "name": "Integrated Camera",
+        "host": "127.0.0.1",
+        "port": 5000,
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "bitrate": 5000
+      },
+      {
+        "name": "Logi C270 HD WebCam",
+        "host": "127.0.0.1",
+        "port": 5001,
+        "width": 1280,
+        "height": 720,
+        "fps": 30,
+        "bitrate": 3000
+      }
+    ]
+  }
+}

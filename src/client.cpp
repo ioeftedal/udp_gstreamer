@@ -1,6 +1,7 @@
 #include "client.h"
 #include <QVBoxLayout>
 #include <QEvent>
+#include <QMouseEvent>
 #include <QDebug>
 #include <QMetaObject>
 
@@ -23,17 +24,13 @@ ClientWidget::ClientWidget(const QString &hostMain, quint16 portMain,
     insetLabel_->setStyleSheet("border: 2px solid white; background-color: black;");
     insetLabel_->setCursor(Qt::PointingHandCursor);
     insetLabel_->raise();
-
-    // Connect click to swapVideos
     insetLabel_->installEventFilter(this);
 
-    // Layout
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(mainLabel_);
     setLayout(layout);
 
-    // Start pipelines
     startPipeline(hostMain, portMain, true);
     startPipeline(hostInset, portInset, false);
 }
@@ -42,12 +39,10 @@ ClientWidget::~ClientWidget() {
     if (mainPipeline_) {
         gst_element_set_state(mainPipeline_, GST_STATE_NULL);
         gst_object_unref(mainPipeline_);
-        mainPipeline_ = nullptr;
     }
     if (insetPipeline_) {
         gst_element_set_state(insetPipeline_, GST_STATE_NULL);
         gst_object_unref(insetPipeline_);
-        insetPipeline_ = nullptr;
     }
 }
 
@@ -77,7 +72,7 @@ void ClientWidget::layoutInset() {
     constexpr int targetWidth_px = 320;
 
     int insetWidth = targetWidth_px;
-    int insetHeight = insetWidth * 3 / 4; // default 4:3
+    int insetHeight = insetWidth * 3 / 4;
 
     if (insetHeight > availableSize.height() - 2*margin_px)
         insetHeight = availableSize.height() - 2*margin_px;
@@ -109,7 +104,7 @@ void ClientWidget::startPipeline(const QString &host, quint16 port, bool isMain)
 
     GstElement *appsink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
     if (!appsink) {
-        qWarning() << "Appsink not found in pipeline!";
+        qWarning() << "Appsink not found!";
         gst_object_unref(pipeline);
         return;
     }

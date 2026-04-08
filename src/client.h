@@ -7,7 +7,6 @@
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 #include <QPixmap>
-#include <functional>
 
 class ClientWidget : public QWidget
 {
