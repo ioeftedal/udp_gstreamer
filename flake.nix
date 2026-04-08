@@ -58,6 +58,7 @@
               pkg-config
               clang
               clang-tools
+              nlohmann_json
 
               # C/C++ libs
               llvmPackages_latest.libllvm
