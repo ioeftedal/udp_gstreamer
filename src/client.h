@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QMutex>
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 #include <QPixmap>
@@ -16,7 +17,11 @@ public:
     explicit ClientWidget(const QString &hostMain, quint16 portMain,
                           const QString &hostInset, quint16 portInset,
                           QWidget *parent = nullptr);
-    ~ClientWidget();
+    ~ClientWidget() override;
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
     void startPipeline(const QString &host, quint16 port, bool isMain);
@@ -26,19 +31,11 @@ private:
 
     QLabel *mainLabel_;
     QLabel *insetLabel_;
-
-    QPixmap mainPixmap_;
-    QPixmap insetPixmap_;
-
-    QLabel* mainTarget_;
-    QLabel* insetTarget_;
+    QLabel *mainTarget_;
+    QLabel *insetTarget_;
 
     GstElement *mainPipeline_;
     GstElement *insetPipeline_;
 
-    std::function<void()> insetClickHandler_;
-
-protected:
-    void resizeEvent(QResizeEvent *event) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
+    QMutex targetMutex_;
 };

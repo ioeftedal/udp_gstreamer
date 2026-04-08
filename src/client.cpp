@@ -1,7 +1,8 @@
 #include "client.h"
 #include <QVBoxLayout>
-#include <QMouseEvent>
-#include <iostream>
+#include <QEvent>
+#include <QDebug>
+#include <QMetaObject>
 
 ClientWidget::ClientWidget(const QString &hostMain, quint16 portMain,
                            const QString &hostInset, quint16 portInset,
@@ -10,61 +11,59 @@ ClientWidget::ClientWidget(const QString &hostMain, quint16 portMain,
       mainLabel_(new QLabel(this)),
       insetLabel_(new QLabel(this)),
       mainPipeline_(nullptr),
-      insetPipeline_(nullptr)
+      insetPipeline_(nullptr),
+      mainTarget_(mainLabel_),
+      insetTarget_(insetLabel_)
 {
     mainLabel_->setScaledContents(true);
     mainLabel_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     mainLabel_->setMinimumSize(0, 0);
+
     insetLabel_->setScaledContents(true);
     insetLabel_->setStyleSheet("border: 2px solid white; background-color: black;");
-    insetLabel_->installEventFilter(this);
     insetLabel_->setCursor(Qt::PointingHandCursor);
     insetLabel_->raise();
 
-    mainTarget_ = mainLabel_;
-    insetTarget_ = insetLabel_;
+    // Connect click to swapVideos
+    insetLabel_->installEventFilter(this);
 
-    // Main layout only contains the main feed
+    // Layout
     QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0,0,0,0);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(mainLabel_);
     setLayout(layout);
 
-    // Start GStreamer pipelines
-    startPipeline(hostMain, portMain, true);    // main video
-    startPipeline(hostInset, portInset, false); // inset video
-
-    // Click handler for swapping videos
-    insetClickHandler_ = [this]() { swapVideos(); };
+    // Start pipelines
+    startPipeline(hostMain, portMain, true);
+    startPipeline(hostInset, portInset, false);
 }
 
 ClientWidget::~ClientWidget() {
     if (mainPipeline_) {
         gst_element_set_state(mainPipeline_, GST_STATE_NULL);
         gst_object_unref(mainPipeline_);
+        mainPipeline_ = nullptr;
     }
     if (insetPipeline_) {
         gst_element_set_state(insetPipeline_, GST_STATE_NULL);
         gst_object_unref(insetPipeline_);
+        insetPipeline_ = nullptr;
     }
+}
+
+void ClientWidget::swapVideos() {
+    QMutexLocker locker(&targetMutex_);
+    std::swap(mainTarget_, insetTarget_);
+    mainLabel_->raise();
+    insetLabel_->raise();
 }
 
 bool ClientWidget::eventFilter(QObject *obj, QEvent *event) {
     if (obj == insetLabel_ && event->type() == QEvent::MouseButtonRelease) {
-        if (insetClickHandler_) insetClickHandler_();
+        swapVideos();
         return true;
     }
     return QWidget::eventFilter(obj, event);
-}
-
-// void ClientWidget::swapVideos() {
-//     std::swap(mainPixmap_, insetPixmap_);
-//     mainLabel_->setPixmap(mainPixmap_);
-//     insetLabel_->setPixmap(insetPixmap_);
-// }
-
-void ClientWidget::swapVideos() {
-    std::swap(mainTarget_, insetTarget_);
 }
 
 void ClientWidget::resizeEvent(QResizeEvent *event) {
@@ -78,7 +77,7 @@ void ClientWidget::layoutInset() {
     constexpr int targetWidth_px = 320;
 
     int insetWidth = targetWidth_px;
-    int insetHeight = insetWidth * 3 / 4; // 4:3 aspect ratio
+    int insetHeight = insetWidth * 3 / 4; // default 4:3
 
     if (insetHeight > availableSize.height() - 2*margin_px)
         insetHeight = availableSize.height() - 2*margin_px;
@@ -93,7 +92,6 @@ void ClientWidget::layoutInset() {
 }
 
 void ClientWidget::startPipeline(const QString &host, quint16 port, bool isMain) {
-    gst_init(nullptr, nullptr);
     QString pipelineDesc = QString(
         "udpsrc port=%1 ! "
         "application/x-rtp,encoding-name=H264,payload=96 ! "
@@ -104,16 +102,21 @@ void ClientWidget::startPipeline(const QString &host, quint16 port, bool isMain)
     GError *error = nullptr;
     GstElement *pipeline = gst_parse_launch(pipelineDesc.toUtf8().data(), &error);
     if (!pipeline) {
-        std::cerr << "Failed to create pipeline: "
-                  << (error ? error->message : "Unknown") << std::endl;
+        qWarning() << "Failed to create pipeline:" << (error ? error->message : "Unknown");
         if (error) g_error_free(error);
         return;
     }
 
     GstElement *appsink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
-    gst_app_sink_set_emit_signals((GstAppSink*)appsink, true);
-    gst_app_sink_set_max_buffers((GstAppSink*)appsink, 1);
-    gst_app_sink_set_drop((GstAppSink*)appsink, true);
+    if (!appsink) {
+        qWarning() << "Appsink not found in pipeline!";
+        gst_object_unref(pipeline);
+        return;
+    }
+
+    gst_app_sink_set_emit_signals(GST_APP_SINK(appsink), true);
+    gst_app_sink_set_max_buffers(GST_APP_SINK(appsink), 1);
+    gst_app_sink_set_drop(GST_APP_SINK(appsink), true);
     g_object_set(appsink, "sync", FALSE, nullptr);
 
     g_signal_connect(appsink, "new-sample", G_CALLBACK(onNewSample), this);
@@ -150,27 +153,15 @@ GstFlowReturn ClientWidget::onNewSample(GstAppSink *sink, gpointer user_data) {
 
     QPixmap pixmap = QPixmap::fromImage(img.rgbSwapped());
 
-    // if (self->mainPipeline_ && GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_)) {
-    //     self->mainPixmap_ = pixmap;
-    //     QMetaObject::invokeMethod(self->mainLabel_, "setPixmap",
-    //                               Qt::QueuedConnection,
-    //                               Q_ARG(QPixmap, self->mainPixmap_));
-    // } else {
-    //     self->insetPixmap_ = pixmap;
-    //     QMetaObject::invokeMethod(self->insetLabel_, "setPixmap",
-    //                               Qt::QueuedConnection,
-    //                               Q_ARG(QPixmap, self->insetPixmap_));
-    // }
+    bool isMainStream = (GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_));
+    QLabel* target = nullptr;
+    {
+        QMutexLocker locker(&self->targetMutex_);
+        target = isMainStream ? self->mainTarget_ : self->insetTarget_;
+    }
 
-    bool isMainStream =
-        (GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_));
-
-    QLabel* target = isMainStream ? self->mainTarget_
-                                : self->insetTarget_;
-
-    QMetaObject::invokeMethod(target, "setPixmap",
-                            Qt::QueuedConnection,
-                            Q_ARG(QPixmap, pixmap));
+    QMetaObject::invokeMethod(target, "setPixmap", Qt::QueuedConnection,
+                              Q_ARG(QPixmap, pixmap));
 
     return GST_FLOW_OK;
 }
