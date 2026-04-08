@@ -15,7 +15,7 @@ pkg_check_modules(GST REQUIRED gstreamer-1.0 gstreamer-app-1.0)
 set(CMAKE_AUTOMOC_INCLUDE_DIRECTORIES ${GST_INCLUDE_DIRS})
 
 add_executable(client
-    src/main.cpp
+    src/client_main.cpp
     src/client.cpp
     src/client.h
 )
@@ -31,7 +31,9 @@ target_link_libraries(client PRIVATE
 )
 
 add_executable(server
+    src/server_main.cpp
     src/server.cpp
+    src/server.h
 )
 
 target_include_directories(server PRIVATE ${GST_INCLUDE_DIRS})
