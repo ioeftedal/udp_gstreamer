@@ -133,7 +133,9 @@ void ClientWidget::startPipeline(const QString &host, quint16 port, bool isMain)
     gst_app_sink_set_drop(GST_APP_SINK(appsink), true);
     g_object_set(appsink, "sync", FALSE, nullptr); // render as fast as possible
 
-    g_signal_connect(appsink, "new-sample", G_CALLBACK(onNewSample), this);
+    // Pass context with bool to identify which stream this is
+    StreamContext* context = isMain ? &mainContext_ : &insetContext_;
+    g_signal_connect(appsink, "new-sample", G_CALLBACK(onNewSample), context);
 
     if (gst_element_set_state(pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
         qWarning() << "Failed to set pipeline to PLAYING state";
@@ -152,7 +154,8 @@ void ClientWidget::startPipeline(const QString &host, quint16 port, bool isMain)
  * to safely cross threads.
  */
 GstFlowReturn ClientWidget::onNewSample(GstAppSink *sink, gpointer user_data) {
-    auto *self = static_cast<ClientWidget*>(user_data);
+    auto *context = static_cast<StreamContext*>(user_data);
+    auto *self = context->widget;
     GstSample *sample = gst_app_sink_pull_sample(sink);
     if (!sample) return GST_FLOW_OK;
 
@@ -183,9 +186,8 @@ GstFlowReturn ClientWidget::onNewSample(GstAppSink *sink, gpointer user_data) {
     gst_buffer_unmap(buffer, &map);
     gst_sample_unref(sample);
 
-    // Determine target label based on pipeline
-    bool isMainStream = (GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_.get()));
-    QLabel* target = isMainStream ? self->mainTarget_.load() : self->insetTarget_.load();
+    // Use bool from context to determine target label (same pattern as server)
+    QLabel* target = context->isMain ? self->mainTarget_.load() : self->insetTarget_.load();
 
     // Post update to GUI thread
     QMetaObject::invokeMethod(target, "setPixmap", Qt::QueuedConnection,

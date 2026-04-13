@@ -53,6 +53,12 @@ protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
+    /// Simple context to pass to GStreamer callback
+    struct StreamContext {
+        ClientWidget* widget;
+        bool isMain;
+    };
+
     /// Initialize and start a GStreamer pipeline for a stream.
     void startPipeline(const QString &host, quint16 port, bool isMain);
 
@@ -86,6 +92,10 @@ private:
     using GstPipelinePtr = std::unique_ptr<GstElement, GstPipelineDeleter>;
     GstPipelinePtr mainPipeline_;
     GstPipelinePtr insetPipeline_;
+
+    // Contexts for identifying streams in callbacks
+    StreamContext mainContext_{this, true};
+    StreamContext insetContext_{this, false};
 
     QMutex layoutMutex_; ///< Protects layoutInset() from concurrent resize calls
 };
