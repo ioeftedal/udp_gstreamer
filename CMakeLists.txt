@@ -21,6 +21,7 @@ add_executable(client
 )
 
 target_include_directories(client PRIVATE ${GST_INCLUDE_DIRS})
+target_link_directories(client PRIVATE ${GST_LIBRARY_DIRS})
 target_link_libraries(client PRIVATE
     Qt6::Core
     Qt6::Gui
@@ -37,6 +38,7 @@ add_executable(server
 )
 
 target_include_directories(server PRIVATE ${GST_INCLUDE_DIRS})
+target_link_directories(server PRIVATE ${GST_LIBRARY_DIRS})
 target_link_libraries(server PRIVATE
     ${GST_LIBRARIES}
 )
