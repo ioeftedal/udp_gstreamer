@@ -13,6 +13,7 @@
 #include <gst/app/gstappsink.h>
 #include <memory>
 #include <atomic>
+#include <netinet/in.h>
 
 /**
  * @brief ClientWidget displays a tactical C2-style console with dual video streams.
@@ -38,6 +39,8 @@ public:
      * @param portMain Port for the main stream.
      * @param hostInset Host for the inset stream.
      * @param portInset Port for the inset stream.
+     * @param cmdSocket Socket file descriptor for sending commands.
+     * @param cmdAddr Server address for sending commands.
      * @param parent Optional parent widget.
      *
      * Sets up UI labels, installs event filters for interactivity, and starts
@@ -45,6 +48,7 @@ public:
      */
     explicit ClientWidget(const QString &hostMain, quint16 portMain,
                           const QString &hostInset, quint16 portInset,
+                          int cmdSocket, const struct sockaddr_in &cmdAddr,
                           QWidget *parent = nullptr);
 
     ~ClientWidget() override;
@@ -65,6 +69,9 @@ private:
 
     /// Adjust exposure value.
     void adjustExposure(int delta);
+
+    /// Send command to server via UDP.
+    void sendCommand(const QString &command);
 
     /// Create the main video view with tactical overlays.
     QWidget* createMainVideoView();
@@ -89,6 +96,10 @@ private:
     int shotCount_;               ///< Shot counter
     QString mainName_;            ///< Name of main camera
     QString secondaryName_;       ///< Name of secondary camera
+
+    // --- Command socket ---
+    int cmdSocket_;               ///< Socket file descriptor for commands
+    struct sockaddr_in cmdAddr_;  ///< Server address for commands
 
     // --- GStreamer pipeline management ---
     struct GstPipelineDeleter {

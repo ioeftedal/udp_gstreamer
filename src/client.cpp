@@ -8,15 +8,20 @@
 #include <QTimer>
 #include <QMouseEvent>
 #include <QDebug>
+#include <sys/socket.h>
+#include <string.h>
 
 ClientWidget::ClientWidget(const QString &hostMain, quint16 portMain,
                            const QString &hostInset, quint16 portInset,
+                           int cmdSocket, const struct sockaddr_in &cmdAddr,
                            QWidget *parent)
     : QWidget(parent),
       exposureValue_(0),
       shotCount_(0),
       mainName_("Feed 1"),
-      secondaryName_("Feed 2")
+      secondaryName_("Feed 2"),
+      cmdSocket_(cmdSocket),
+      cmdAddr_(cmdAddr)
 {
     // Initialize atomic targets
     mainTarget_.store(nullptr);
@@ -239,6 +244,7 @@ QWidget* ClientWidget::createSidebar() {
     );
     connect(shootButton, &QPushButton::clicked, this, [this]() {
         shotCount_++;
+        sendCommand("shoot");
     });
     layout->addWidget(shootButton);
 
@@ -262,6 +268,19 @@ void ClientWidget::adjustExposure(int delta) {
 
     double ev = exposureValue_ / 10.0;
     exposureLabel_->setText(QString::number(ev, 'f', 1) + " EV");
+}
+
+void ClientWidget::sendCommand(const QString &command) {
+    QByteArray cmdBytes = command.toUtf8();
+    ssize_t sent = sendto(cmdSocket_, cmdBytes.constData(), cmdBytes.size(),
+                          MSG_CONFIRM,
+                          (const struct sockaddr *)&cmdAddr_, sizeof(cmdAddr_));
+
+    if (sent < 0) {
+        qWarning() << "Failed to send command:" << command;
+    } else {
+        qDebug() << "Command sent:" << command;
+    }
 }
 
 bool ClientWidget::eventFilter(QObject *obj, QEvent *event) {

@@ -13,8 +13,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#define MAXLINE  1024
-
 
 /**
  * @brief Holds configuration parameters for the client streams.
@@ -80,18 +78,6 @@ bool loadClientConfig(const QString &filePath, ClientConfig &cfg) {
     return true;
 }
 
-bool send_command(int sockfd, const char *message, const struct sockaddr_in &servaddr){
-    try {
-        sendto(sockfd, message, strlen(message), MSG_CONFIRM,
-           (const struct sockaddr *)&servaddr, sizeof(servaddr));
-        return true;
-    }
-    catch (...) {
-        return false;
-    }
-}
-
-
 /**
  * @brief Application entry point.
  *
@@ -116,8 +102,6 @@ int main(int argc, char *argv[]) {
     }
 
     int sockfd;
-    char buffer[MAXLINE];
-    const char *hello = "Hello from client";
     struct sockaddr_in servaddr;
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -133,12 +117,9 @@ int main(int argc, char *argv[]) {
     servaddr.sin_port   = htons(cfg.cmdPort);   // Command server port from config
     servaddr.sin_addr.s_addr = inet_addr(cfg.cmdHost.toStdString().c_str()); // Command server IP from config
 
-    socklen_t len = sizeof(servaddr);
-
-    send_command(sockfd, "test", servaddr);
-    
-    // Create main window widget for video streams
-    ClientWidget w(cfg.mainHost, cfg.mainPort, cfg.insetHost, cfg.insetPort);
+    // Create main window widget for video streams with command socket
+    ClientWidget w(cfg.mainHost, cfg.mainPort, cfg.insetHost, cfg.insetPort,
+                   sockfd, servaddr);
     w.resize(800, 600); // Initial size
     w.show();           // Display the widget
 
