@@ -64,17 +64,13 @@ QWidget* ClientWidget::createMainVideoView() {
     // Main video label fills the entire container
     mainVideoLabel_ = new QLabel(container);
     mainVideoLabel_->setStyleSheet("background-color: #000000;");
-    mainVideoLabel_->setScaledContents(true);
+    mainVideoLabel_->setAlignment(Qt::AlignCenter);
     mainVideoLabel_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
-    // Position video label to fill container
-    auto updateVideoLabel = [this, container]() {
-        mainVideoLabel_->setGeometry(0, 0, container->width(), container->height());
-    };
-
+    // Position video label to fill container; re-applied whenever the
+    // container resizes (e.g. going fullscreen) via eventFilter below.
+    mainVideoLabel_->setGeometry(0, 0, container->width(), container->height());
     container->installEventFilter(this);
-    connect(container, &QWidget::destroyed, updateVideoLabel);
-    QTimer::singleShot(0, updateVideoLabel);
 
     return container;
 }
@@ -118,13 +114,6 @@ QWidget* ClientWidget::createSidebar() {
     secondaryVideoLabel_->setCursor(Qt::PointingHandCursor);
     secondaryVideoLabel_->installEventFilter(this);
 
-    // Add placeholder text
-    QLabel *secPlaceholder = new QLabel(secondaryName_ + " VIDEO", secondaryVideoLabel_);
-    secPlaceholder->setStyleSheet("color: rgba(120, 120, 120, 255); font-family: 'Courier New', monospace; "
-                                  "font-size: 10px; letter-spacing: 2px; background-color: transparent;");
-    secPlaceholder->setAlignment(Qt::AlignCenter);
-    secPlaceholder->setGeometry(0, 70, 304, 20);
-        
     secVideoLayout->addWidget(secondaryVideoLabel_);
 
     // Swap button
@@ -288,6 +277,12 @@ bool ClientWidget::eventFilter(QObject *obj, QEvent *event) {
         swapVideos();
         return true;
     }
+    if (event->type() == QEvent::Resize) {
+        auto *container = qobject_cast<QWidget*>(obj);
+        if (container && container == mainVideoLabel_->parentWidget()) {
+            mainVideoLabel_->setGeometry(0, 0, container->width(), container->height());
+        }
+    }
     return QWidget::eventFilter(obj, event);
 }
 
@@ -424,12 +419,22 @@ GstFlowReturn ClientWidget::onNewSample(GstAppSink *sink, gpointer user_data) {
 
     // Determine target label based on pipeline
     bool isMainStream = (GST_OBJECT_PARENT(sink) == GST_OBJECT(self->mainPipeline_.get()));
-    QLabel* target = isMainStream ? self->mainTarget_.load() : self->secondaryTarget_.load();
 
-    if (target) {
-        QMetaObject::invokeMethod(target, "setPixmap", Qt::QueuedConnection,
-                                  Q_ARG(QPixmap, pixmap));
-    }
+    QMetaObject::invokeMethod(self, "updateVideoFrame", Qt::QueuedConnection,
+                              Q_ARG(bool, isMainStream), Q_ARG(QPixmap, pixmap));
 
     return GST_FLOW_OK;
+}
+
+void ClientWidget::updateVideoFrame(bool isMainStream, QPixmap pixmap) {
+    QLabel *target = isMainStream ? mainTarget_.load() : secondaryTarget_.load();
+    if (!target) return;
+
+    // The big main display preserves aspect ratio (letterboxed) instead of
+    // stretching to fill; the small sidebar preview keeps its fixed box.
+    if (target == mainVideoLabel_) {
+        target->setPixmap(pixmap.scaled(target->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    } else {
+        target->setPixmap(pixmap);
+    }
 }

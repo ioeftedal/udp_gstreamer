@@ -6,7 +6,6 @@
 #include "client.h"
 #include <gst/gst.h>
 
-#include <bits/stdc++.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/socket.h>

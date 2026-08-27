@@ -53,6 +53,9 @@ public:
 
     ~ClientWidget() override;
 
+    /// Applies a decoded frame to the appropriate label on the GUI thread.
+    Q_INVOKABLE void updateVideoFrame(bool isMainStream, QPixmap pixmap);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
