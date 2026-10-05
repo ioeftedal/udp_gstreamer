@@ -1,15 +1,15 @@
 {
   "client": {
     "main_stream": {
-      "host": "127.0.0.1",
+      "host": "123.69.69.23",
       "port": 5000
     },
     "inset_stream": {
-      "host": "127.0.0.1",
+      "host": "123.69.69.23",
       "port": 5001
     },
     "commands": {
-      "host": "127.0.0.1",
+      "host": "123.69.69.23",
       "port": 5002
     }
   },
@@ -17,7 +17,7 @@
     "cameras": [
       {
         "name": "Integrated Camera",
-        "host": "127.0.0.1",
+        "host": "123.69.69.53",
         "port": 5000,
         "width": 1920,
         "height": 1080,
@@ -26,7 +26,7 @@
       },
       {
         "name": "Logi C270 HD WebCam",
-        "host": "127.0.0.1",
+        "host": "123.69.69.53",
         "port": 5001,
         "width": 1280,
         "height": 720,
