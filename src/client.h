@@ -70,9 +70,6 @@ private:
     /// Swap the main and secondary streams.
     void swapVideos();
 
-    /// Adjust exposure value.
-    void adjustExposure(int delta);
-
     /// Send command to server via UDP.
     void sendCommand(const QString &command);
 
@@ -86,16 +83,12 @@ private:
     QLabel *mainVideoLabel_;      ///< Main video stream display
     QLabel *secondaryVideoLabel_; ///< Secondary video preview
     QPushButton *swapButton_;     ///< Button to swap video feeds
-    QPushButton *expUpButton_;    ///< Increase exposure
-    QPushButton *expDownButton_;  ///< Decrease exposure
-    QLabel *exposureLabel_;       ///< Shows current exposure value
 
     // Atomic QLabel targets for thread-safe updates from GStreamer callbacks
     std::atomic<QLabel*> mainTarget_;
     std::atomic<QLabel*> secondaryTarget_;
 
     // --- State ---
-    int exposureValue_;           ///< Current exposure compensation (-20 to +20)
     int shotCount_;               ///< Shot counter
     QString mainName_;            ///< Name of main camera
     QString secondaryName_;       ///< Name of secondary camera

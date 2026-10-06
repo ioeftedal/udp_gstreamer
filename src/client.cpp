@@ -15,7 +15,7 @@ ClientWidget::ClientWidget(const QString &hostMain, quint16 portMain,
                            const QString &hostInset, quint16 portInset,
                            int cmdSocket, const struct sockaddr_in &cmdAddr,
                            QWidget *parent)
-    : QWidget(parent), exposureValue_(0), shotCount_(0), mainName_("Feed 1"),
+    : QWidget(parent), shotCount_(0), mainName_("Feed 1"),
       secondaryName_("Feed 2"), cmdSocket_(cmdSocket), cmdAddr_(cmdAddr) {
   // Initialize atomic targets
   mainTarget_.store(nullptr);
@@ -138,23 +138,11 @@ QWidget *ClientWidget::createSidebar() {
   expLayout->setSpacing(12);
 
   // Exposure header
-  QHBoxLayout *expHeaderLayout = new QHBoxLayout();
   QLabel *expHeaderLabel = new QLabel("EXPOSURE");
   expHeaderLabel->setStyleSheet(
       "color: rgba(150, 150, 150, 255); font-family: 'Courier New', monospace; "
       "font-size: 10px; letter-spacing: 2px;");
-
-  exposureLabel_ = new QLabel("0.0 EV");
-  exposureLabel_->setStyleSheet(
-      "color: rgba(235, 235, 235, 255); font-family: 'Courier New', monospace; "
-      "font-size: 16px; font-weight: 500; letter-spacing: 1px;");
-  expHeaderLayout->addWidget(expHeaderLabel);
-  expHeaderLayout->addStretch();
-  expHeaderLayout->addWidget(exposureLabel_);
-  expLayout->addLayout(expHeaderLayout);
-
-  // Exposure controls
-  QHBoxLayout *expControlLayout = new QHBoxLayout();
+  expLayout->addWidget(expHeaderLabel);
 
   QString buttonStyle = "QPushButton { "
                         "  background-color: transparent; "
@@ -162,51 +150,55 @@ QWidget *ClientWidget::createSidebar() {
                         "  color: rgba(210, 210, 210, 255); "
                         "  font-family: 'Courier New', monospace; "
                         "  font-size: 14px; "
+                        "  padding: 10px; "
                         "} "
                         "QPushButton:hover { "
                         "  background-color: #3d3e40; "
                         "}";
 
-  expDownButton_ = new QPushButton("−");
-  expDownButton_->setFixedWidth(38);
-  expDownButton_->setStyleSheet(buttonStyle);
-  connect(expDownButton_, &QPushButton::clicked, this,
-          [this]() { adjustExposure(-1); });
+  // Camera 1 controls
+  QLabel *cam1Label = new QLabel("Camera 1");
+  cam1Label->setStyleSheet(
+      "color: rgba(180, 180, 180, 255); font-family: 'Courier New', monospace; "
+      "font-size: 11px; letter-spacing: 1px;");
+  expLayout->addWidget(cam1Label);
 
-  expUpButton_ = new QPushButton("+");
-  expUpButton_->setFixedWidth(38);
-  expUpButton_->setStyleSheet(buttonStyle);
-  connect(expUpButton_, &QPushButton::clicked, this,
-          [this]() { adjustExposure(1); });
+  QHBoxLayout *cam1Layout = new QHBoxLayout();
+  QPushButton *cam1DecButton = new QPushButton("−");
+  cam1DecButton->setStyleSheet(buttonStyle);
+  connect(cam1DecButton, &QPushButton::clicked, this,
+          [this]() { sendCommand("dec_exp:1"); });
 
-  // Visual exposure bar (placeholder)
-  QLabel *expBar = new QLabel();
-  expBar->setFixedHeight(38);
-  expBar->setStyleSheet(
-      "background-color: #1e1f21; border: 1px solid #484848;");
+  QPushButton *cam1IncButton = new QPushButton("+");
+  cam1IncButton->setStyleSheet(buttonStyle);
+  connect(cam1IncButton, &QPushButton::clicked, this,
+          [this]() { sendCommand("inc_exp:1"); });
 
-  expControlLayout->addWidget(expDownButton_);
-  expControlLayout->addWidget(expBar, 1);
-  expControlLayout->addWidget(expUpButton_);
-  expLayout->addLayout(expControlLayout);
+  cam1Layout->addWidget(cam1DecButton);
+  cam1Layout->addWidget(cam1IncButton);
+  expLayout->addLayout(cam1Layout);
 
-  // Exposure scale labels
-  QHBoxLayout *expScaleLayout = new QHBoxLayout();
-  QLabel *expMin = new QLabel("−2.0");
-  QLabel *expZero = new QLabel("0");
-  QLabel *expMax = new QLabel("+2.0");
-  QString scaleStyle =
-      "color: rgba(115, 115, 115, 255); font-family: 'Courier New', monospace; "
-      "font-size: 10px; letter-spacing: 1px;";
-  expMin->setStyleSheet(scaleStyle);
-  expZero->setStyleSheet(scaleStyle);
-  expMax->setStyleSheet(scaleStyle);
-  expScaleLayout->addWidget(expMin);
-  expScaleLayout->addStretch();
-  expScaleLayout->addWidget(expZero);
-  expScaleLayout->addStretch();
-  expScaleLayout->addWidget(expMax);
-  expLayout->addLayout(expScaleLayout);
+  // Camera 2 controls
+  QLabel *cam2Label = new QLabel("Camera 2");
+  cam2Label->setStyleSheet(
+      "color: rgba(180, 180, 180, 255); font-family: 'Courier New', monospace; "
+      "font-size: 11px; letter-spacing: 1px;");
+  expLayout->addWidget(cam2Label);
+
+  QHBoxLayout *cam2Layout = new QHBoxLayout();
+  QPushButton *cam2DecButton = new QPushButton("−");
+  cam2DecButton->setStyleSheet(buttonStyle);
+  connect(cam2DecButton, &QPushButton::clicked, this,
+          [this]() { sendCommand("dec_exp:2"); });
+
+  QPushButton *cam2IncButton = new QPushButton("+");
+  cam2IncButton->setStyleSheet(buttonStyle);
+  connect(cam2IncButton, &QPushButton::clicked, this,
+          [this]() { sendCommand("inc_exp:2"); });
+
+  cam2Layout->addWidget(cam2DecButton);
+  cam2Layout->addWidget(cam2IncButton);
+  expLayout->addLayout(cam2Layout);
 
   layout->addLayout(expLayout);
 
@@ -247,14 +239,6 @@ void ClientWidget::swapVideos() {
 
   // Swap names
   std::swap(mainName_, secondaryName_);
-}
-
-void ClientWidget::adjustExposure(int delta) {
-  exposureValue_ += delta;
-  exposureValue_ = qBound(-20, exposureValue_, 20);
-
-  double ev = exposureValue_ / 10.0;
-  exposureLabel_->setText(QString::number(ev, 'f', 1) + " EV");
 }
 
 void ClientWidget::sendCommand(const QString &command) {
