@@ -7,6 +7,10 @@
     "inset_stream": {
       "host": "127.0.0.1",
       "port": 5001
+    },
+    "commands": {
+      "host": "127.0.0.1",
+      "port": 5002
     }
   },
   "server": {
@@ -29,6 +33,10 @@
         "fps": 30,
         "bitrate": 3000
       }
-    ]
+    ],
+    "commands": {
+      "host": "127.0.0.1",
+      "port": 5002
+    }
   }
 }
