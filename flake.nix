@@ -59,6 +59,7 @@
               clang
               clang-tools
               nlohmann_json
+		lazygit
 
               # C/C++ libs
               llvmPackages_latest.libllvm

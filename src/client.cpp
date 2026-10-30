@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
@@ -133,6 +134,36 @@ QWidget *ClientWidget::createSidebar() {
 
   layout->addLayout(secVideoLayout);
 
+  // --- TRACKING MODE SECTION ---
+  QVBoxLayout *trackingLayout = new QVBoxLayout();
+  trackingLayout->setSpacing(12);
+
+  QLabel *trackingHeaderLabel = new QLabel("TRACKING");
+  trackingHeaderLabel->setStyleSheet(
+      "color: rgba(150, 150, 150, 255); font-family: 'Courier New', monospace; "
+      "font-size: 10px; letter-spacing: 2px;");
+  trackingLayout->addWidget(trackingHeaderLabel);
+
+  trackingButton_ = new QPushButton("AUTOMATIC");
+  trackingButton_->setStyleSheet("QPushButton { "
+                                 "  background-color: transparent; "
+                                 "  border: 1px solid #4d4d4d; "
+                                 "  color: rgba(210, 210, 210, 255); "
+                                 "  font-family: 'Courier New', monospace; "
+                                 "  font-size: 11px; "
+                                 "  letter-spacing: 2px; "
+                                 "  padding: 11px 12px; "
+                                 "} "
+                                 "QPushButton:hover { "
+                                 "  background-color: #3d3e40; "
+                                 "  border-color: #6a6a6a; "
+                                 "}");
+  connect(trackingButton_, &QPushButton::clicked, this,
+          &ClientWidget::toggleTrackingMode);
+  trackingLayout->addWidget(trackingButton_);
+
+  layout->addLayout(trackingLayout);
+
   // --- EXPOSURE CONTROL SECTION ---
   QVBoxLayout *expLayout = new QVBoxLayout();
   expLayout->setSpacing(12);
@@ -239,6 +270,37 @@ void ClientWidget::swapVideos() {
 
   // Swap names
   std::swap(mainName_, secondaryName_);
+}
+
+void ClientWidget::toggleTrackingMode() {
+  manualMode_ = !manualMode_;
+  trackingButton_->setText(manualMode_ ? "MANUAL" : "AUTOMATIC");
+  sendCommand(manualMode_ ? "mode:manual" : "mode:auto");
+}
+
+void ClientWidget::keyPressEvent(QKeyEvent *event) {
+  // Movement keys only apply in manual mode. Unmodified keys only, so that
+  // shortcuts like Ctrl+L don't move the camera. Auto-repeat is kept so holding
+  // a key keeps sending.
+  if (manualMode_ && event->modifiers() == Qt::NoModifier) {
+    switch (event->key()) {
+    case Qt::Key_H:
+      sendCommand("move:left");
+      return;
+    case Qt::Key_J:
+      sendCommand("move:down");
+      return;
+    case Qt::Key_K:
+      sendCommand("move:up");
+      return;
+    case Qt::Key_L:
+      sendCommand("move:right");
+      return;
+    default:
+      break;
+    }
+  }
+  QWidget::keyPressEvent(event);
 }
 
 void ClientWidget::sendCommand(const QString &command) {

@@ -59,6 +59,7 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
     /// Initialize and start a GStreamer pipeline for a stream.
@@ -69,6 +70,9 @@ private:
 
     /// Swap the main and secondary streams.
     void swapVideos();
+
+    /// Switch between manual and automatic tracking and notify the server.
+    void toggleTrackingMode();
 
     /// Send command to server via UDP.
     void sendCommand(const QString &command);
@@ -83,6 +87,7 @@ private:
     QLabel *mainVideoLabel_;      ///< Main video stream display
     QLabel *secondaryVideoLabel_; ///< Secondary video preview
     QPushButton *swapButton_;     ///< Button to swap video feeds
+    QPushButton *trackingButton_; ///< Button to toggle tracking mode
 
     // Atomic QLabel targets for thread-safe updates from GStreamer callbacks
     std::atomic<QLabel*> mainTarget_;
@@ -92,6 +97,7 @@ private:
     int shotCount_;               ///< Shot counter
     QString mainName_;            ///< Name of main camera
     QString secondaryName_;       ///< Name of secondary camera
+    bool manualMode_ = false;     ///< True when hjkl controls are active
 
     // --- Command socket ---
     int cmdSocket_;               ///< Socket file descriptor for commands
